@@ -336,6 +336,12 @@ a{color:var(--turquoise);}
   background:var(--chile); color:#fff; font-family:'Inter',sans-serif; font-size:1rem; font-weight:700;
 }
 .asst-btn:active{transform:scale(.99);}
+.asst-row{display:flex; gap:8px; margin-top:12px;}
+.asst-row .asst-btn{margin-top:0;}
+.asst-row #assistantBtn{flex:1;}
+.asst-mic{flex:0 0 52px; width:52px; font-size:1.2rem; background:#2f3a4d;}
+.asst-mic.listening{background:#c0392b; animation:micpulse 1.2s infinite;}
+@keyframes micpulse{0%,100%{opacity:1;}50%{opacity:.55;}}
 .asst-note{margin-top:10px; font-size:.74rem; color:#8fa0b8; font-family:'Inter',sans-serif;}
 .sit-chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
 .sit-chips .chip-label{width:100%; color:#9fb0c4; font-size:.78rem; font-weight:600; font-family:'Inter',sans-serif;}
