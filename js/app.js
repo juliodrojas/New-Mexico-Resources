@@ -83,8 +83,8 @@ const I18N = {
     fldOrg:"Organization", fldWhat:"What it offers", fldHow:"How to access it", fldElig:"Eligibility Checklist",
     fldContact:"Contact", fldSource:"Source",
     mapViewTitle:"Map view", mapKnownLoc:"resources with a known location",
-    mapDisclaimerTitle:"Pin locations are approximate.",
-    mapDisclaimerBody:"They're placed using general street-grid geography, not precise address-by-address geocoding. Confirm the exact address (shown on each resource's page) before traveling somewhere unfamiliar — especially for shelters, clinics, and other places where getting the right building matters.",
+    mapDisclaimerTitle:"Pin locations come from address geocoding.",
+    mapDisclaimerBody:"Pins were placed by geocoding each resource's street address (October 2026 pass) — far more accurate than the old street-grid estimates, but still confirm the exact address on the resource's page before traveling somewhere unfamiliar, especially for shelters and clinics.",
     howRibbon:[
       {n:"01",h:"Search or browse",p:"Type what you need, or click a category to see everything in it."},
       {n:"02",h:"Check the badges",p:"Region tags, plus \"hidden gem\" and \"unverified\" flags where relevant."},
@@ -142,8 +142,8 @@ const I18N = {
     fldOrg:"Organización", fldWhat:"Qué ofrece", fldHow:"Cómo acceder", fldElig:"Lista de Requisitos",
     fldContact:"Contacto", fldSource:"Fuente",
     mapViewTitle:"Vista de mapa", mapKnownLoc:"recursos con ubicación conocida",
-    mapDisclaimerTitle:"Las ubicaciones son aproximadas.",
-    mapDisclaimerBody:"Se colocaron usando la geografía general de calles, no geocodificación precisa dirección por dirección. Confirma la dirección exacta (mostrada en la página de cada recurso) antes de viajar a un lugar desconocido — especialmente para refugios, clínicas y otros lugares donde importa llegar al edificio correcto.",
+    mapDisclaimerTitle:"Las ubicaciones provienen de geocodificación de direcciones.",
+    mapDisclaimerBody:"Los pines se colocaron geocodificando la dirección de cada recurso (revisión de octubre de 2026) — mucho más preciso que las estimaciones anteriores, pero confirma la dirección exacta en la página del recurso antes de viajar a un lugar desconocido, especialmente para refugios y clínicas.",
     howRibbon:[
       {n:"01",h:"Busca o explora",p:"Escribe lo que necesitas, o haz clic en una categoría para ver todo lo que contiene."},
       {n:"02",h:"Revisa las etiquetas",p:"Etiquetas de región, además de \"poco conocido\" y \"sin verificar\" cuando aplique."},
@@ -296,18 +296,181 @@ function icon(name, size=20){
 
 
 /* ============================================================
+   SMART SEARCH
+   Deterministic scoring shared by the main search box and the
+   keyword-matching assistant. Handles:
+     - synonym expansion (EN + ES): "rent"->housing, "comida"->food
+     - common multi-word phrases: "food stamps", "sin papeles"
+     - typo tolerance: small Levenshtein distance per word
+     - accent normalization: "medico" matches "médico"
+   This is still plain keyword scoring over the dataset, NOT a
+   real AI — don't oversell it in comments or UI.
+   ============================================================ */
+function normStr(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""); }
+
+var SEARCH_SYNONYMS = {
+  /* --- English --- */
+  "rent":["housing","rental","apartment","eviction","landlord"],
+  "rental":["housing","rent","apartment"],"apartment":["housing","rent","rental"],
+  "eviction":["housing","rent","legal"],"homeless":["shelter","housing"],"shelter":["housing"],
+  "food":["pantry","meal","groceries","snap","ebt"],"hungry":["food","pantry","meal"],
+  "snap":["food","ebt","pantry","benefits"],"ebt":["food","snap","pantry"],
+  "stamps":["food","snap","ebt"],"groceries":["food","pantry"],
+  "job":["employment","work","career","workforce","hiring"],"jobs":["employment","work","career"],
+  "work":["employment","job","career"],"unemployed":["employment","job","benefits"],
+  "hiring":["employment","job","workforce"],
+  "doctor":["healthcare","health","clinic","medical"],"clinic":["healthcare","health","medical"],
+  "medical":["healthcare","health","clinic"],"hospital":["healthcare","medical","clinic"],
+  "dental":["healthcare","dentist"],"dentist":["healthcare","dental"],
+  "mental":["health","counseling","crisis","behavioral"],"therapy":["health","counseling"],
+  "counseling":["health","mental","crisis"],"crisis":["hotline","mental","counseling","shelter"],
+  "lawyer":["legal","attorney","rights"],"legal":["lawyer","attorney","rights","court"],
+  "attorney":["legal","lawyer"],"court":["legal","lawyer"],
+  "immigration":["immigrant","itin","undocumented","citizenship"],
+  "immigrant":["immigration","itin","undocumented"],"undocumented":["immigrant","itin","immigration"],
+  "itin":["immigrant","tax","undocumented"],"citizenship":["immigrant","immigration","legal"],
+  "security":["social","ssi","ssdi","benefits"],"benefits":["assistance","financial","snap","ssi"],
+  "bill":["utilities","utility","financial","assistance"],"bills":["utilities","financial","assistance"],
+  "utilities":["utility","bill","financial"],"electric":["utilities","utility","pnm"],
+  "water":["utilities","utility"],"gas":["utilities","utility"],
+  "school":["education","academic","student","college"],"college":["education","unm","student","academic"],
+  "student":["education","unm","college","academic"],"scholarship":["education","financial","student"],
+  "childcare":["child","family","daycare","youth"],"daycare":["childcare","child","family"],
+  "youth":["child","family","teen"],"senior":["aging","elderly","disability"],
+  "elderly":["senior","aging","disability"],"disabled":["disability","senior","benefits"],
+  "veteran":["veterans","military","va"],"military":["veteran","veterans"],
+  "abuse":["crisis","domestic","violence","shelter"],"domestic":["abuse","violence","crisis","shelter"],
+  "violence":["abuse","crisis","shelter"],"suicide":["crisis","hotline","mental"],
+  "money":["financial","assistance","cash"],"cash":["financial","assistance"],
+  "loan":["financial","credit","lending"],"credit":["financial","loan"],
+  "tax":["itin","financial","free"],"bus":["transportation","transit","ride"],
+  "transportation":["bus","transit","ride"],"internet":["digital","computer","wifi"],
+  "computer":["digital","internet","technology"],"phone":["digital","lifeline","communication"],
+  /* --- Spanish --- */
+  "renta":["housing","rent","apartment"],"alquiler":["housing","rent"],
+  "comida":["food","pantry","meal"],"comer":["food","pantry"],"despensa":["food","pantry"],
+  "hambre":["food","pantry","meal"],
+  "trabajo":["employment","job","work"],"empleo":["employment","job"],
+  "desempleado":["employment","unemployed","job"],"contratando":["employment","hiring"],
+  "salud":["healthcare","health","clinic"],"medico":["healthcare","doctor","clinic"],
+  "clinica":["healthcare","clinic","medical"],
+  "dentista":["dental","healthcare"],
+  "terapia":["therapy","health","counseling"],"consejeria":["counseling","health"],
+  "abogado":["legal","lawyer"],"ley":["legal","lawyer","rights"],"corte":["legal","court"],
+  "papeles":["immigrant","itin","legal"],"indocumentado":["immigrant","undocumented","itin"],
+  "inmigrante":["immigrant","immigration"],"inmigracion":["immigration","immigrant"],
+  "ciudadania":["citizenship","immigrant"],
+  "cuentas":["bills","utilities","financial"],"factura":["bill","utilities"],
+  "luz":["utilities","electric","utility"],"electricidad":["utilities","electric"],
+  "escuela":["school","education"],"universidad":["college","education","unm"],
+  "estudiante":["student","education"],"beca":["scholarship","education"],
+  "colegio":["school","education"],
+  "ninos":["child","family","childcare"],"familia":["family","child","youth"],
+  "cuidado":["childcare","care"],"anciano":["senior","aging","elderly"],
+  "discapacitado":["disabled","disability"],"veterano":["veteran","veterans"],
+  "refugio":["shelter","housing"],"albergue":["shelter","housing"],
+  "ayuda":["assistance","help","financial"],"dinero":["financial","money","assistance"],
+  "casa":["housing","home","shelter"],"hogar":["housing","home"],
+  "autobus":["bus","transportation"],"transporte":["transportation","bus"],
+  "computadora":["computer","digital"]
+};
+
+var SEARCH_PHRASES = {
+  "food stamps":["food","snap","ebt","pantry"],
+  "sin papeles":["immigrant","itin","undocumented","legal"],
+  "no social":["immigrant","itin","undocumented"],
+  "social security":["social","ssi","benefits"],
+  "need help":["assistance","help"],
+  "perdi mi trabajo":["employment","unemployed","job"],
+  "no puedo pagar":["financial","assistance","bill"],
+  "can't pay":["financial","assistance","bill"],
+  "lugar para quedarse":["shelter","housing"],
+  "place to stay":["shelter","housing"]
+};
+
+function levDist(a,b){
+  var m=a.length,n=b.length;
+  if(!m) return n; if(!n) return m;
+  var prev=[],cur=[];
+  for(var j=0;j<=n;j++) prev[j]=j;
+  for(var i=1;i<=m;i++){
+    cur[0]=i;
+    for(var k=1;k<=n;k++){
+      cur[k]=Math.min(prev[k]+1, cur[k-1]+1, prev[k-1]+(a[i-1]===b[k-1]?0:1));
+    }
+    var tmp=prev; prev=cur; cur=tmp;
+  }
+  return prev[n];
+}
+
+function fuzzyThreshold(w){ return w.length<5 ? 1 : 2; }
+
+/* Returns 2 for exact/substring match, 1 for fuzzy match, 0 for no match */
+function matchWordInTokens(qw, tokens){
+  var i, t;
+  for(i=0;i<tokens.length;i++){
+    t=tokens[i];
+    if(t.indexOf(qw)!==-1 || (qw.length>3 && qw.indexOf(t)!==-1 && t.length>3)) return 2;
+  }
+  if(qw.length>=4){
+    var thr=fuzzyThreshold(qw);
+    for(i=0;i<tokens.length;i++){
+      t=tokens[i];
+      if(t[0]!==qw[0]) continue;              /* first-letter gate kills most false positives */
+      if(Math.abs(t.length-qw.length)>thr) continue;
+      if(levDist(qw,t)<=thr) return 1;
+    }
+  }
+  return 0;
+}
+
+function expandQuery(query){
+  var q=normStr(query), out=[], seen={};
+  function add(w){ if(w && w.length>=3 && !seen[w]){ seen[w]=1; out.push(w); } }
+  var pq;
+  for(pq in SEARCH_PHRASES){
+    if(q.indexOf(pq)!==-1){
+      SEARCH_PHRASES[pq].forEach(add);
+    }
+  }
+  q.split(/\s+/).forEach(function(w){
+    add(w);
+    var syn=SEARCH_SYNONYMS[w];
+    if(syn) syn.forEach(add);
+  });
+  return out;
+}
+
+function resourceBlob(r){
+  return normStr(r.name+" "+r.org+" "+r.what+" "+r.domain+" "+r.elig);
+}
+
+/* Score a resource against a query; 0 = no match */
+function scoreResource(r, query){
+  var words=expandQuery(query);
+  if(!words.length) return 0;
+  var tokens=resourceBlob(r).split(/\s+/), score=0;
+  words.forEach(function(w){ score+=matchWordInTokens(w,tokens); });
+  return score;
+}
+
+/* ============================================================
    SEARCH & FILTER STATE
    ============================================================ */
 function applyFilters(rows){
-  return rows.filter(r=>{
+  var out=rows.filter(function(r){
     if(filters.immigrant && !r.immigrant_tag) return false;
     if(filters.hidden && r.hidden !== "Yes") return false;
     if(filters.search){
-      const blob = (r.name+" "+r.org+" "+r.what+" "+r.domain).toLowerCase();
-      if(!blob.includes(filters.search.toLowerCase())) return false;
+      r._s=scoreResource(r, filters.search);
+      return r._s>0;
     }
     return true;
   });
+  if(filters.search){
+    out.sort(function(a,b){ return (b._s||0)-(a._s||0); });
+  }
+  return out;
 }
 function toggleImmigrantFilter(){ filters.immigrant=!filters.immigrant; document.getElementById('immFilter').classList.toggle('active',filters.immigrant); render(); }
 function toggleHiddenFilter(){ filters.hidden=!filters.hidden; document.getElementById('hiddenFilter').classList.toggle('active',filters.hidden); render(); }
@@ -351,8 +514,8 @@ function videoBlockFor(matchName){
 /* ============================================================
    MAP VIEW
    Built with Leaflet.js + free OpenStreetMap tiles (no API key).
-   Pin coordinates are APPROXIMATE (placed via street-grid geography,
-   not precise geocoding) — see the in-app disclaimer and the
+   Pin coordinates were verified via address geocoding (Oct 2026 pass,
+   Nominatim/OpenStreetMap) — see the in-app disclaimer and the
    Verification Queue tab in the dataset for details.
    ============================================================ */
 function showMapView(){
@@ -498,13 +661,8 @@ function printCurrentView(){
    ============================================================ */
 function keywordMatch(query){
   if(!query || query.trim().length<3) return [];
-  const words = query.toLowerCase().split(/\s+/).filter(w=>w.length>2);
-  const scored = DATA.map(r=>{
-    const blob = (r.name+" "+r.what+" "+r.domain+" "+r.elig).toLowerCase();
-    let score = 0;
-    words.forEach(w=>{ if(blob.includes(w)) score++; });
-    return {r, score};
-  }).filter(x=>x.score>0);
+  const scored = DATA.map(r=>({r, score: scoreResource(r, query)}))
+    .filter(x=>x.score>0);
   scored.sort((a,b)=>b.score-a.score);
   return scored.slice(0,6).map(x=>x.r);
 }
