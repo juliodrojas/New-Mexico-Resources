@@ -1799,7 +1799,7 @@ function renderAssistant(){
     <div class="section-head"><h2>${t('asstTitle')}</h2>
     <span class="sub">${t('asstSub')}</span></div>
     <textarea id="assistantInput" placeholder="${t('asstPlaceholder').replace(/"/g,'&quot;')}" rows="2"></textarea>
-    <button class="asst-btn" id="assistantBtn">${t('asstBtn')}</button>
+    <div class="asst-row"><button class="asst-btn" id="assistantBtn">${t('asstBtn')}</button><button class="asst-btn asst-mic" id="assistantMicBtn" title="🎤">🎤</button></div>
     <button class="asst-btn asst-ai" id="assistantAiBtn" style="display:none;margin-top:8px;">${t('asstAiBtn')}</button>
     <div class="asst-note">${t('asstNote')}</div>
     <div class="sit-chips"><span class="chip-label">${t('tryLabel')}</span>${chips}</div>
@@ -1808,6 +1808,7 @@ function renderAssistant(){
   const input = wrap.querySelector('#assistantInput');
   const runSearch = ()=>{
     const matches = keywordMatch(input.value);
+    logSearch(input.value, matches.length);
     const resultsDiv = wrap.querySelector('#assistantResults');
     resultsDiv.innerHTML = '';
     if(matches.length){
@@ -1854,6 +1855,7 @@ function renderAssistant(){
   let deb = null;
   input.addEventListener('input', ()=>{ clearTimeout(deb); deb = setTimeout(runSearch, 350); });
   input.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); clearTimeout(deb); runSearch(); } });
+  setupVoice(input, wrap.querySelector('#assistantMicBtn'));
   wrap.querySelectorAll('.sit-chip').forEach(ch=>{
     ch.addEventListener('click', ()=>{ input.value = ch.dataset.q; runSearch(); input.focus(); });
   });
@@ -2132,6 +2134,44 @@ function feedbackBlock(id){
 /* ============================================================
    SITUATION PLAYBOOKS — step-by-step guides (data in js/playbooks.js)
    ============================================================ */
+
+/* Anonymous search analytics: logs only the query text, UI language and
+   result count — no IPs, no names, nothing identifying. Fire-and-forget. */
+var lastLoggedQ = '';
+function logSearch(q, hitCount){
+  if(!API_BASE) return;
+  q = (q||'').trim();
+  if(q.length < 3 || q === lastLoggedQ) return;
+  lastLoggedQ = q;
+  fetch(API_BASE + '/api/log', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({q:q.slice(0,200), lang:lang, hits:hitCount})}).catch(()=>{});
+}
+
+/* Voice search (Web Speech API): mic button fills the input and runs search.
+   Hidden automatically where the browser has no speech recognition. */
+function setupVoice(input, btn, onDone){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ btn.style.display = 'none'; return; }
+  let rec = null, listening = false;
+  const reset = ()=>{ listening = false; btn.classList.remove('listening'); btn.textContent = '🎤'; };
+  btn.onclick = ()=>{
+    if(listening){ try{ rec.stop(); }catch(e){} reset(); return; }
+    try{
+      rec = new SR();
+      rec.lang = (lang === 'es') ? 'es-MX' : 'en-US';
+      rec.interimResults = false; rec.maxAlternatives = 1;
+      listening = true; btn.classList.add('listening'); btn.textContent = '⏺️';
+      rec.onresult = (e)=>{
+        input.value = e.results[0][0].transcript;
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+        if(onDone) onDone();
+        reset();
+      };
+      rec.onerror = reset; rec.onend = reset;
+      rec.start();
+    }catch(e){ reset(); }
+  };
+}
 function renderPlaybookGrid(){
   const wrap = document.createElement('div');
   wrap.innerHTML = `<div class="section-head" style="margin-top:30px;"><h2>${t('playbooksTitle')}</h2><span class="sub">${t('playbooksSub')}</span></div>`;
