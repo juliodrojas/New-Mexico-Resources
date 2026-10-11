@@ -111,7 +111,30 @@ const I18N = {
     footerBottom1:"Data compiled from public agency and organization sources.", footerBottom2:"Not a substitute for calling ahead.",
     officialBanner:"A compiled community resource for New Mexico residents — not an official government website. Data sourced from public agencies and organizations; verify details before relying on them.",
     noMatch:"No resources match the current filters.",
-    langToggle:"Español"
+    langToggle:"Español",
+    navHome:"Home", navSearch:"Search", navMap:"Map", navHelp:"Help now",
+    asstTitle:"What's going on?",
+    asstSub:"Describe your situation in your own words — English or Spanish",
+    asstPlaceholder:"e.g. I lost my job and can't pay rent...",
+    asstBtn:"Find help",
+    asstAiBtn:"✨ Ask AI", aiThinking:"Thinking…",
+    aiError:"The AI helper is unavailable right now — try the keyword search instead.",
+    asstNote:"Keyword matching, not AI — it finds resources by the words you use.",
+    tryLabel:"Try:",
+    actCall:"Call", actWeb:"Website", actDir:"Directions",
+    sitChips:[
+      {label:"I need food", q:"i need food"},
+      {label:"Can't pay rent", q:"i can't pay rent"},
+      {label:"Need a place tonight", q:"i need a place to stay tonight"},
+      {label:"Lost my job", q:"i lost my job"},
+      {label:"No insurance", q:"no health insurance"},
+      {label:"No papers", q:"i don't have papers"}
+    ],
+    playbooksTitle:"Step-by-step guides", playbooksSub:"Not just listings — what to do first, second, third",
+    mySaved:"My saved resources", savedEmpty:"Nothing saved yet — tap 🔖 on any resource to keep it here.",
+    fbQ:"Was this helpful?", fbThanks:"Thanks — your feedback helps others.", fbUp:"👍 Yes", fbDown:"👎 No",
+    shareBtn:"Share", saveBtn:"Save", savedBtn:"Saved ✓",
+    footerReviewed:"Directory last reviewed October 2026.",
   },
   es: {
     catNames: { "Housing":"Vivienda","Food":"Alimentos","Financial & Banking":"Finanzas y Banca","Healthcare":"Salud",
@@ -170,7 +193,30 @@ const I18N = {
     footerBottom1:"Datos recopilados de agencias públicas y organizaciones comunitarias.", footerBottom2:"No sustituye llamar antes de ir.",
     officialBanner:"Un recurso comunitario compilado para residentes de Nuevo México — no es un sitio web oficial del gobierno. Datos de agencias públicas y organizaciones; verifica los detalles antes de confiar en ellos.",
     noMatch:"Ningún recurso coincide con los filtros actuales.",
-    langToggle:"English"
+    langToggle:"English",
+    navHome:"Inicio", navSearch:"Buscar", navMap:"Mapa", navHelp:"Ayuda ya",
+    asstTitle:"¿Qué está pasando?",
+    asstSub:"Describe tu situación con tus palabras — inglés o español",
+    asstPlaceholder:"Ej: perdí mi trabajo y no puedo pagar la renta...",
+    asstBtn:"Buscar ayuda",
+    asstAiBtn:"✨ Preguntar a la IA", aiThinking:"Pensando…",
+    aiError:"La IA no está disponible ahora — prueba la búsqueda de palabras clave.",
+    asstNote:"Búsqueda por palabras clave, no IA — encuentra recursos según tus palabras.",
+    tryLabel:"Prueba:",
+    actCall:"Llamar", actWeb:"Sitio web", actDir:"Cómo llegar",
+    sitChips:[
+      {label:"Necesito comida", q:"necesito comida"},
+      {label:"No puedo pagar la renta", q:"no puedo pagar la renta"},
+      {label:"Dónde dormir esta noche", q:"donde puedo dormir esta noche"},
+      {label:"Perdí mi trabajo", q:"perdi mi trabajo"},
+      {label:"Sin seguro médico", q:"no tengo seguro medico"},
+      {label:"Sin papeles", q:"no tengo papeles"}
+    ],
+    playbooksTitle:"Guías paso a paso", playbooksSub:"No solo listados — qué hacer primero, segundo, tercero",
+    mySaved:"Mis recursos guardados", savedEmpty:"Nada guardado aún — toca 🔖 en cualquier recurso para guardarlo aquí.",
+    fbQ:"¿Te fue útil?", fbThanks:"Gracias — tu opinión ayuda a otros.", fbUp:"👍 Sí", fbDown:"👎 No",
+    shareBtn:"Compartir", saveBtn:"Guardar", savedBtn:"Guardado ✓",
+    footerReviewed:"Directorio revisado por última vez en octubre de 2026.",
   }
 };
 function t(key){ return I18N[lang][key]; }
@@ -279,6 +325,13 @@ function applyRoute(hash, fromPop){
     mapView = true;
   } else if(hash === '#/crisis'){
     renderCrisisRoute();
+    return;
+  } else if(hash === '#/saved'){
+    renderSavedRoute();
+    return;
+  } else if(hash.startsWith('#/playbook/')){
+    const pid = decodeURIComponent(hash.split('/')[2]);
+    renderPlaybookRoute(pid);
     return;
   } else if(hash.startsWith('#/situation/')){
     const idx = parseInt(hash.split('/')[2]);
@@ -1706,6 +1759,7 @@ function renderCrisisRoute(){
   h.innerHTML = `<h2>${lang==='es' ? '¿Necesitas ayuda ahora mismo?' : 'Need help right now?'}</h2><span class="sub">${lang==='es' ? 'Refugio y líneas de crisis' : 'Shelter and crisis lines'}</span>`;
   main.appendChild(h);
   main.appendChild(buildCardList(matches));
+  updateBottomNav();
 }
 
 
@@ -1738,12 +1792,17 @@ function keywordMatch(query){
 
 function renderAssistant(){
   const wrap = document.createElement('div');
-  wrap.className = 'assistant-block';
+  wrap.className = 'assistant-block assistant-hero';
+  wrap.id = 'assistantHero';
+  const chips = t('sitChips').map(c=>`<button class="sit-chip" data-q="${c.q.replace(/"/g,'&quot;')}">${c.label}</button>`).join('');
   wrap.innerHTML = `
-    <div class="section-head"><h2>${lang==='es' ? "Cuéntanos qué está pasando" : "Tell us what's going on"}</h2>
-    <span class="sub">${lang==='es' ? "Búsqueda por palabras clave — no es una IA real" : "Keyword-matching helper — not a real AI"}</span></div>
-    <textarea id="assistantInput" placeholder="${lang==='es' ? "Ej: perdí mi trabajo y no puedo pagar la renta..." : "e.g. I lost my job and can't pay rent..."}" rows="2"></textarea>
-    <button class="toggle" id="assistantBtn" style="margin-top:8px;">${lang==='es' ? "Buscar" : "Find resources"}</button>
+    <div class="section-head"><h2>${t('asstTitle')}</h2>
+    <span class="sub">${t('asstSub')}</span></div>
+    <textarea id="assistantInput" placeholder="${t('asstPlaceholder').replace(/"/g,'&quot;')}" rows="2"></textarea>
+    <button class="asst-btn" id="assistantBtn">${t('asstBtn')}</button>
+    <button class="asst-btn asst-ai" id="assistantAiBtn" style="display:none;margin-top:8px;">${t('asstAiBtn')}</button>
+    <div class="asst-note">${t('asstNote')}</div>
+    <div class="sit-chips"><span class="chip-label">${t('tryLabel')}</span>${chips}</div>
     <div id="assistantResults"></div>`;
   const btn = wrap.querySelector('#assistantBtn');
   const input = wrap.querySelector('#assistantInput');
@@ -1759,7 +1818,45 @@ function renderAssistant(){
     }
   };
   btn.onclick = runSearch;
-  input.onkeydown = (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); runSearch(); } };
+  const aiBtn = wrap.querySelector('#assistantAiBtn');
+  if(API_BASE){
+    aiBtn.style.display = '';
+    aiBtn.onclick = async ()=>{
+      const q = input.value.trim();
+      if(q.length < 3) return;
+      const resultsDiv = wrap.querySelector('#assistantResults');
+      resultsDiv.innerHTML = `<div class="empty">${t('aiThinking')}</div>`;
+      aiBtn.disabled = true;
+      try{
+        const res = await fetch(API_BASE + '/api/ask', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({question: q, lang: lang})
+        });
+        const data = await res.json();
+        resultsDiv.innerHTML = '';
+        if(data.answer){
+          const a = document.createElement('div'); a.className = 'ai-answer';
+          a.textContent = data.answer;
+          resultsDiv.appendChild(a);
+        }
+        const items = (data.resourceIds||[]).map(id=>DATA.find(x=>x.id===id)).filter(Boolean);
+        if(items.length) resultsDiv.appendChild(buildCardList(items));
+        if(!data.answer && !items.length){
+          const e = document.createElement('div'); e.className='empty'; e.textContent = t('aiError');
+          resultsDiv.appendChild(e);
+        }
+      }catch(err){
+        resultsDiv.innerHTML = `<div class="empty">${t('aiError')}</div>`;
+      }
+      aiBtn.disabled = false;
+    };
+  }
+  let deb = null;
+  input.addEventListener('input', ()=>{ clearTimeout(deb); deb = setTimeout(runSearch, 350); });
+  input.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); clearTimeout(deb); runSearch(); } });
+  wrap.querySelectorAll('.sit-chip').forEach(ch=>{
+    ch.addEventListener('click', ()=>{ input.value = ch.dataset.q; runSearch(); input.focus(); });
+  });
   return wrap;
 }
 
@@ -1781,6 +1878,7 @@ function renderSituationRoute(idx){
   h.innerHTML = `<h2>${label}</h2><span class="sub">${matches.length} ${t('curatedResourcesFor')}</span>`;
   main.appendChild(h);
   main.appendChild(buildCardList(matches));
+  updateBottomNav();
 }
 
 
@@ -1833,7 +1931,44 @@ function renderHomeExtras(show){
    decides what to draw. Prefer calling navigate(hash) over calling
    render() directly, so the URL always matches what's on screen.
    ============================================================ */
+/* ============================================================
+   BOTTOM NAV (mobile) — active state + labels, Search shortcut
+   ============================================================ */
+function updateBottomNav(){
+  const nav = document.getElementById('bottomNav');
+  if(!nav) return;
+  nav.querySelector('#navHomeLabel').textContent = t('navHome');
+  nav.querySelector('#navSearchLabel').textContent = t('navSearch');
+  nav.querySelector('#navMapLabel').textContent = t('navMap');
+  nav.querySelector('#navHelpLabel').textContent = t('navHelp');
+  const h = location.hash || '#/';
+  const isHome = (h==='#/'||h===''||h==='#') && !mapView && detailStack.length===0 && path.length===0 && !filters.search;
+  nav.querySelectorAll('button').forEach(b=>{
+    const k = b.dataset.nav;
+    b.classList.toggle('active',
+      (k==='home'&&isHome) || (k==='map'&&mapView) || (k==='help'&&h==='#/crisis'));
+  });
+}
+
+function navToSearch(){
+  const go = ()=>{
+    const hero = document.getElementById('assistantHero');
+    if(hero){
+      hero.scrollIntoView({behavior:'smooth', block:'start'});
+      const input = document.getElementById('assistantInput');
+      if(input) setTimeout(()=>input.focus({preventScroll:true}), 450);
+    }
+  };
+  if((location.hash||'#/') !== '#/'){ navigate('#/'); setTimeout(go, 60); }
+  else go();
+}
+
 function render(){
+  renderInner();
+  updateBottomNav();
+}
+
+function renderInner(){
   if(mapView){ renderMapView(); renderHomeExtras(false); return; }
   document.getElementById('mapToggle').classList.remove('active');
   if(detailStack.length>0){ renderDetail(); renderHomeExtras(false); return; }
@@ -1850,8 +1985,10 @@ function render(){
     return;
   }
   if(path.length===0){
-    main.appendChild(renderQuickStart());
     main.appendChild(renderAssistant());
+    main.appendChild(renderSavedButton());
+    main.appendChild(renderQuickStart());
+    main.appendChild(renderPlaybookGrid());
     const h = document.createElement('div'); h.className='section-head'; h.style.marginTop='30px'; h.innerHTML=`<h2>${t('browseByCategory')}</h2><span class="sub">${DATA.length} ${t('totalResources')}</span>`;
     main.appendChild(h);
     main.appendChild(buildCategoryGrid(filtered));
@@ -1925,6 +2062,164 @@ function badgesFor(r){
     ${r.status==='Needs Verification'?`<span class="badge verify">${t('unverified')}</span>`:''}`;
 }
 
+/* Extract the first callable phone number from a contact string.
+   Handles "505-764-3975", "1-800-283-4465", "211 or 505-247-2911". */
+function extractPhone(contact){
+  if(!contact) return null;
+  const m = contact.match(/(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+  if(m){
+    const digits = m[0].replace(/\D/g,'');
+    return 'tel:+1' + digits.slice(-10);
+  }
+  const short = contact.match(/\b([23]11)\b/);
+  if(short) return 'tel:' + short[1];
+  return null;
+}
+
+/* ============================================================
+   SAVED RESOURCES (localStorage) + SHARE + FEEDBACK
+   API_BASE: set to the Cloudflare Worker URL when the $0
+   AI/feedback backend is deployed; feedback POSTs there when set.
+   ============================================================ */
+var API_BASE = 'https://nmr-assistant.julio-d-rojas-loo.workers.dev';
+
+function getFaves(){
+  try{ return JSON.parse(localStorage.getItem('nmr-faves')||'[]'); }catch(e){ return []; }
+}
+function isFave(id){ return getFaves().indexOf(id) !== -1; }
+function faveBtnInner(id){
+  return isFave(id) ? '🔖 '+t('savedBtn') : '🔖 '+t('saveBtn');
+}
+function toggleFave(id, btn){
+  let f = getFaves();
+  const i = f.indexOf(id);
+  if(i>=0) f.splice(i,1); else f.push(id);
+  try{ localStorage.setItem('nmr-faves', JSON.stringify(f)); }catch(e){}
+  render();
+}
+function shareResource(id){
+  const r = DATA.find(x=>x.id===id);
+  if(!r) return;
+  const url = location.origin + location.pathname + '#/resource/' + r.id;
+  const text = r.name + ' — ' + url;
+  if(navigator.share){ navigator.share({title:r.name, text:r.name, url:url}).catch(()=>{}); }
+  else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
+}
+function feedbackVote(id, val, wrap){
+  try{
+    const fb = JSON.parse(localStorage.getItem('nmr-fb')||'{}');
+    fb[id] = val;
+    localStorage.setItem('nmr-fb', JSON.stringify(fb));
+  }catch(e){}
+  if(API_BASE){ fetch(API_BASE+'/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,vote:val})}).catch(()=>{}); }
+  wrap.innerHTML = `<span class="fb-thanks">${t('fbThanks')}</span>`;
+}
+function feedbackBlock(id){
+  let cur = null;
+  try{ cur = JSON.parse(localStorage.getItem('nmr-fb')||'{}')[id] || null; }catch(e){}
+  const wrap = document.createElement('div');
+  wrap.className = 'fb-block';
+  if(cur){ wrap.innerHTML = `<span class="fb-thanks">${t('fbThanks')}</span>`; }
+  else{
+    wrap.innerHTML = `<span class="fb-q">${t('fbQ')}</span>
+      <button class="fb-btn" data-v="up">${t('fbUp')}</button>
+      <button class="fb-btn" data-v="down">${t('fbDown')}</button>`;
+    wrap.querySelectorAll('.fb-btn').forEach(b=>{ b.onclick = ()=>feedbackVote(id, b.dataset.v, wrap); });
+  }
+  return wrap;
+}
+
+/* ============================================================
+   SITUATION PLAYBOOKS — step-by-step guides (data in js/playbooks.js)
+   ============================================================ */
+function renderPlaybookGrid(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<div class="section-head" style="margin-top:30px;"><h2>${t('playbooksTitle')}</h2><span class="sub">${t('playbooksSub')}</span></div>`;
+  const grid = document.createElement('div'); grid.className = 'pb-grid';
+  PLAYBOOKS.forEach(pb=>{
+    const card = document.createElement('div'); card.className = 'pb-card';
+    card.innerHTML = `<div class="pb-icon">${pb.icon}</div><div class="pb-txt"><h3>${pb.title[lang]}</h3><span>${pb.sub[lang]}</span></div><div class="pb-arrow">→</div>`;
+    makeInteractive(card, ()=>navigate('#/playbook/'+pb.id));
+    grid.appendChild(card);
+  });
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function renderPlaybookRoute(id){
+  const pb = PLAYBOOKS.find(p=>p.id===id);
+  if(!pb){ navigate('#/'); return; }
+  document.title = pb.title[lang] + ' — New Mexico Resource Navigator';
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  renderHomeExtras(false);
+  renderBreadcrumb('playbook', pb.title[lang]);
+  const back = document.createElement('button');
+  back.className = 'back-btn';
+  back.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> ${t('backToCategories')}`;
+  back.onclick = ()=> history.back();
+  main.appendChild(back);
+  const h = document.createElement('div'); h.className='section-head'; h.style.marginTop='14px';
+  h.innerHTML = `<h2>${pb.icon} ${pb.title[lang]}</h2><span class="sub">${pb.sub[lang]}</span>`;
+  main.appendChild(h);
+  pb.steps.forEach((s,i)=>{
+    const step = document.createElement('div'); step.className='pb-step';
+    step.innerHTML = `<div class="pb-step-num">${i+1}</div><div class="pb-step-body"><h3>${s.h[lang]}</h3><p>${s.p[lang]}</p></div>`;
+    main.appendChild(step);
+    const items = s.names.map(n=>DATA.find(x=>x.name===n)).filter(Boolean);
+    if(items.length) main.appendChild(buildCardList(items));
+  });
+  updateBottomNav();
+  window.scrollTo({top:0});
+}
+
+function renderSavedRoute(){
+  document.title = t('mySaved') + ' — New Mexico Resource Navigator';
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  renderHomeExtras(false);
+  renderBreadcrumb('saved', t('mySaved'));
+  const back = document.createElement('button');
+  back.className = 'back-btn';
+  back.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> ${t('backToCategories')}`;
+  back.onclick = ()=> history.back();
+  main.appendChild(back);
+  const h = document.createElement('div'); h.className='section-head'; h.style.marginTop='14px';
+  h.innerHTML = `<h2>🔖 ${t('mySaved')}</h2>`;
+  main.appendChild(h);
+  const faves = getFaves().map(id=>DATA.find(x=>x.id===id)).filter(Boolean);
+  if(faves.length){ main.appendChild(buildCardList(faves)); }
+  else{ const e = document.createElement('div'); e.className='empty'; e.textContent = t('savedEmpty'); main.appendChild(e); }
+  updateBottomNav();
+  window.scrollTo({top:0});
+}
+
+function renderSavedButton(){
+  const b = document.createElement('button');
+  b.className = 'saved-link-btn';
+  b.innerHTML = `🔖 ${t('mySaved')} (${getFaves().length})`;
+  b.onclick = ()=>navigate('#/saved');
+  return b;
+}
+
+function actionRow(r){
+  const phone = extractPhone(r.contact);
+  const acts = [];
+  if(phone) acts.push(`<a class="act-call" href="${phone}" onclick="event.stopPropagation()" aria-label="${t('actCall')} ${r.name}">📞 ${t('actCall')}</a>`);
+  if(r.url) acts.push(`<a class="act-web" href="${r.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 ${t('actWeb')}</a>`);
+  if(r.lat && r.lng) acts.push(`<a class="act-dir" href="https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📍 ${t('actDir')}</a>`);
+  acts.push(`<button class="act-save" onclick="event.stopPropagation();toggleFave(${r.id},this)">${faveBtnInner(r.id)}</button>`);
+  acts.push(`<button class="act-share" onclick="event.stopPropagation();shareResource(${r.id})">📤 ${t('shareBtn')}</button>`);
+  if(!acts.length) return '';
+  return `<div class="card-actions">${acts.join('')}</div>`;
+}
+
+function detailActions(r){
+  const row = actionRow(r);
+  if(!row) return '';
+  return row.replace('card-actions', 'card-actions detail-actions');
+}
+
 function buildCardList(items){
   if(items.length===0){
     const e = document.createElement('div'); e.className='empty'; e.textContent=t('noMatch');
@@ -1936,7 +2231,7 @@ function buildCardList(items){
     c.innerHTML = `<div class="body">
         <span class="rname">${r.name}</span>
         <span class="rorg">${r.org}</span>
-        <div class="rmeta">${badgesFor(r)}</div></div>`;
+        <div class="rmeta">${badgesFor(r)}</div>${actionRow(r)}</div>`;
     makeInteractive(c, ()=>{ navigate('#/resource/'+r.id); });
     wrap.appendChild(c);
   });
@@ -2015,6 +2310,7 @@ function renderDetail(){
   card.innerHTML = `<div class="accent-bar"></div><div class="inner">
     <div class="badges-row">${badgesFor(r)}</div>
     <h2>${r.name}</h2>
+    ${detailActions(r)}
     <div class="field"><b>${t('fldOrg')}</b>${r.org}</div>
     <div class="field"><b>${t('fldWhat')}</b>${r.what}</div>
     <div class="field"><b>${t('fldHow')}</b>${r.how}</div>
@@ -2023,6 +2319,8 @@ function renderDetail(){
     <div class="field"><b>${t('fldSource')}</b><a href="${r.url}" target="_blank" rel="noopener">${r.url}</a></div>
   </div>`;
   wrap.appendChild(card);
+
+  wrap.appendChild(feedbackBlock(r.id));
 
   const related = relatedResources(r);
   if(related.length){
@@ -2074,7 +2372,7 @@ function renderFooter(){
       <div class="footer-col"><h4>${t('footerRegions')}</h4><ul>${t('regions').map(r=>`<li>${r}</li>`).join('')}</ul></div>
       <div class="footer-col"><h4>${t('footerGoodKnow')}</h4><ul>${t('goodKnow').map(g=>`<li>${g}</li>`).join('')}</ul></div>
     </div>
-    <div class="footer-bottom"><span>${t('footerBottom1')}</span><span>${t('footerBottom2')}</span></div>`;
+    <div class="footer-bottom"><span>${t('footerBottom1')}</span><span>📅 ${t('footerReviewed')}</span><span>${t('footerBottom2')}</span></div>`;
   renderFooterCats();
 }
 
@@ -2100,6 +2398,7 @@ function applyStaticTranslations(){
   document.getElementById('hiddenFilter').textContent = t('toggleHidden');
   document.getElementById('mapToggle').textContent = t('toggleMap');
   document.getElementById('langToggleBtn').textContent = t('langToggle');
+  updateBottomNav();
   renderFooter();
 }
 
@@ -2119,3 +2418,8 @@ function toggleLang(){
 document.getElementById('heroBigNum').textContent = DATA.length;
 applyStaticTranslations();
 applyRoute(location.hash || '#/', true);
+
+/* PWA: offline support via service worker (no-op where unsupported) */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
