@@ -455,6 +455,124 @@ function scoreResource(r, query){
 }
 
 /* ============================================================
+   PHRASE BANK — real phrases people type when they need help
+   (EN + ES). phraseSuggest() returns the hand-mapped resources for
+   a query; keywordMatch() shows those first, then fills with scored
+   keyword results. Still deterministic matching, not AI.
+   ============================================================ */
+var PHRASE_SUGGESTIONS = [
+/* ---------- Housing / shelter ---------- */
+{ match:["i need a place to stay tonight","need somewhere to stay tonight","where can i sleep tonight","need shelter tonight","necesito un lugar donde quedarme esta noche","donde puedo dormir esta noche","no tengo donde dormir","necesito refugio esta noche"],
+  names:["Albuquerque Heading Home","Good Shepherd Center","Joy Junction","Barrett House / ABQ Rescue Mission Women's Center of Hope"] },
+{ match:["i'm being evicted","getting evicted","eviction notice","landlord is kicking me out","me van a desalojar","aviso de desalojo","desalojo","el dueno me quiere sacar"],
+  names:["New Mexico Legal Aid","Albuquerque Housing Authority","HUD Albuquerque Field Office"] },
+{ match:["i'm homeless","we are homeless","my family is homeless","estoy sin hogar","no tengo hogar","estamos sin hogar","persona sin hogar"],
+  names:["Albuquerque Heading Home","Good Shepherd Center","Joy Junction","Family Promise of Albuquerque"] },
+{ match:["i can't pay rent","can't pay my rent","behind on rent","help with rent","no puedo pagar la renta","atrasado en la renta","no tengo para la renta","ayuda con la renta"],
+  names:["New Mexico Home Fund","Albuquerque Housing Authority","Housing Choice Voucher Program (Section 8)"] },
+{ match:["looking for a cheap apartment","affordable apartment","cheap rent","cheap apartments near me","busco apartamento barato","apartamento barato","renta barata","apartamentos baratos"],
+  names:["Manzano Vista","Bluewater Village","Sandia Vista","Aztec Village"] },
+{ match:["section 8","housing voucher","housing choice voucher","section 8 application"],
+  names:["Housing Choice Voucher Program (Section 8)","Albuquerque Housing Authority"] },
+/* ---------- Food ---------- */
+{ match:["i need food","need food","we need food","need groceries","necesito comida","necesitamos comida","necesito alimentos"],
+  names:["Roadrunner Food Bank","Storehouse New Mexico","Rio Grande Food Project","Lobo Food Pantry"] },
+{ match:["i'm hungry","my kids are hungry","we're hungry","tengo hambre","mis hijos tienen hambre","tenemos hambre"],
+  names:["Roadrunner Food Bank","Storehouse New Mexico","Noon Day Ministry"] },
+{ match:["food stamps","snap benefits","apply for snap","estampillas de comida","cupones de alimentos","beneficios snap"],
+  names:["SNAP (federally funded, state-administered)"] },
+{ match:["free groceries","free food distribution","despensa gratis","comida gratis","distribucion de comida"],
+  names:["Roadrunner Food Bank","Storehouse New Mexico","The Food Depot"] },
+{ match:["wic","women infants children"],
+  names:["WIC (Women, Infants & Children)"] },
+/* ---------- Work ---------- */
+{ match:["i lost my job","just lost my job","got fired","i was laid off","perdi mi trabajo","me despidieron","me quede sin trabajo","perdi el trabajo"],
+  names:["NM Dept. of Workforce Solutions (DWS)","Library Job & Career Guide — 'Working It Out!'"] },
+{ match:["i need a job","looking for work","need work","find a job","necesito trabajo","busco trabajo","necesito empleo","busco empleo"],
+  names:["NM Dept. of Workforce Solutions (DWS)","Library Job & Career Guide — 'Working It Out!'"] },
+{ match:["unemployment","unemployment benefits","file for unemployment","desempleo","beneficios de desempleo","seguro de desempleo"],
+  names:["NM Dept. of Workforce Solutions (DWS)"] },
+/* ---------- Healthcare ---------- */
+{ match:["i need a doctor","need to see a doctor","find a doctor","necesito un doctor","necesito ver un medico","buscar un doctor"],
+  names:["First Choice Community Healthcare","UNM Care and Out of County Care","La Familia Medical Center"] },
+{ match:["no health insurance","don't have insurance","can't afford insurance","sin seguro medico","no tengo seguro","no tengo seguro medico"],
+  names:["UNM Care and Out of County Care","First Choice Community Healthcare","Presbyterian Healthcare Services — Financial Assistance"] },
+{ match:["tooth hurts","toothache","need a dentist","dental care","cheap dentist","me duele un diente","dolor de muela","necesito un dentista","dentista barato"],
+  names:["First Choice Community Healthcare","La Familia Medical Center"] },
+{ match:["mental health","feeling depressed","depression","anxiety help","salud mental","depresion","me siento deprimido","ansiedad"],
+  names:["Agora Crisis Center","New Mexico Crisis and Access Line"] },
+{ match:["i want to die","thinking of suicide","kill myself","suicidal","quiero morirme","pensando en suicidarme","quiero quitarme la vida"],
+  names:["New Mexico Crisis and Access Line","Agora Crisis Center"] },
+{ match:["emergency medicaid","medicaid for undocumented"],
+  names:["Emergency Medicaid Coverage for Undocumented Residents","State-Funded Healthcare Access for Non-Citizens"] },
+/* ---------- Immigration ---------- */
+{ match:["i don't have papers","no social security number","don't have a social security","no tengo papeles","sin papeles","no tengo seguro social","no ssn"],
+  names:["New Mexico Immigrant Law Center (NMILC)","Enlace Comunitario","Undocumented UNM (undocumented.unm.edu)"] },
+{ match:["itin","itin number","tax id number","individual taxpayer","numero itin","sacar el itin"],
+  names:["UNM ITIN Application Guidance","NM Working Families Tax Credit — ITIN Filers Included","Homewise ITIN Mortgage Loans"] },
+{ match:["immigration lawyer","immigration attorney","need an immigration lawyer","abogado de inmigracion","necesito abogado de inmigracion","abogado migratorio"],
+  names:["New Mexico Immigrant Law Center (NMILC)"] },
+/* ---------- Bills / utilities ---------- */
+{ match:["can't pay electric bill","electric bill help","power shut off","lights shut off","no puedo pagar la luz","me van a cortar la luz","ayuda con la luz"],
+  names:["PNM Good Neighbor Fund + PNM CARES","LIHEAP (Low Income Home Energy Assistance)","HEAT New Mexico"] },
+{ match:["behind on bills","can't pay bills","help with bills","atrasado en las cuentas","no puedo pagar las cuentas","atrasado en pagos"],
+  names:["PNM Good Neighbor Fund + PNM CARES","HEAT New Mexico","Salvation Army Bill Pay Assistance"] },
+{ match:["help paying rent or bills","need help paying","necesito ayuda para pagar"],
+  names:["Salvation Army Bill Pay Assistance","PNM Good Neighbor Fund + PNM CARES","New Mexico Home Fund"] },
+/* ---------- Crisis / safety ---------- */
+{ match:["i need help right now","help me now","it's an emergency","necesito ayuda ahora mismo","emergencia","ayuda urgente","es una emergencia"],
+  names:["New Mexico Crisis and Access Line","Agora Crisis Center","Good Shepherd Center"] },
+{ match:["domestic violence","my partner hits me","abusive relationship","being abused","violencia domestica","mi pareja me pega","violencia en el hogar","maltrato"],
+  names:["Rape Crisis Center of Central New Mexico","Barrett House / ABQ Rescue Mission Women's Center of Hope","New Mexico Crisis and Access Line"] },
+/* ---------- Students / money ---------- */
+{ match:["i'm a student and need money","student emergency money","broke college student","soy estudiante y necesito dinero","dinero de emergencia estudiante","estudiante sin dinero"],
+  names:["Dean of Students Emergency Scholarship","UNM Short-Term Emergency Loan","ASUNM Emergency Scholarship & Advocacy Scholarship"] },
+{ match:["scholarship","scholarships for college","becas","beca","necesito una beca","becas universitarias"],
+  names:["NM Opportunity Scholarship","NM Legislative Lottery Scholarship","El Centro External Scholarship Hub"] },
+/* ---------- Family ---------- */
+{ match:["need childcare","can't afford daycare","childcare assistance","necesito cuidado de ninos","guarderia","no puedo pagar la guarderia"],
+  names:["NM Child Care Assistance Program"] },
+/* ---------- Transport / internet ---------- */
+{ match:["bus pass","need a ride","bus fare","pase de autobus","necesito transporte","boleto de camion"],
+  names:["ABQ RIDE (Fixed Route + ART + Connect Microtransit)","ABQ RIDE Sun Van (Paratransit)"] },
+{ match:["free internet","cheap internet","internet assistance","internet gratis","internet barato"],
+  names:["EveryoneOn","Lifeline"] }
+];
+
+var _nameIndex = null;
+function resourceByName(name){
+  if(!_nameIndex){
+    _nameIndex = {};
+    DATA.forEach(function(r){ _nameIndex[normStr(r.name)] = r; });
+  }
+  return _nameIndex[normStr(name)] || null;
+}
+
+/* Resources whose phrase-bank entry matches the query, in bank order */
+function phraseSuggest(query){
+  var q = normStr(query), out = [], seen = {};
+  PHRASE_SUGGESTIONS.forEach(function(entry){
+    for(var i=0;i<entry.match.length;i++){
+      if(q.indexOf(entry.match[i]) !== -1){
+        entry.names.forEach(function(n){
+          var r = resourceByName(n);
+          if(r && !seen[r.id]){ seen[r.id]=1; out.push(r); }
+        });
+        break;
+      }
+    }
+  });
+  return out;
+}
+
+function phraseBoostIds(query){
+  var ids = {};
+  phraseSuggest(query).forEach(function(r){ ids[r.id]=1; });
+  return ids;
+}
+
+
+/* ============================================================
    SEARCH & FILTER STATE
    ============================================================ */
 function applyFilters(rows){
@@ -462,7 +580,8 @@ function applyFilters(rows){
     if(filters.immigrant && !r.immigrant_tag) return false;
     if(filters.hidden && r.hidden !== "Yes") return false;
     if(filters.search){
-      r._s=scoreResource(r, filters.search);
+      var boost = phraseBoostIds(filters.search);
+      r._s = scoreResource(r, filters.search) + (boost[r.id] ? 1000 : 0);
       return r._s>0;
     }
     return true;
@@ -661,10 +780,15 @@ function printCurrentView(){
    ============================================================ */
 function keywordMatch(query){
   if(!query || query.trim().length<3) return [];
-  const scored = DATA.map(r=>({r, score: scoreResource(r, query)}))
-    .filter(x=>x.score>0);
-  scored.sort((a,b)=>b.score-a.score);
-  return scored.slice(0,6).map(x=>x.r);
+  var out = phraseSuggest(query), seen = {};
+  out.forEach(function(r){ seen[r.id]=1; });
+  if(out.length < 6){
+    var scored = DATA.map(r=>({r, score: scoreResource(r, query)}))
+      .filter(x=>x.score>0 && !seen[x.r.id]);
+    scored.sort((a,b)=>b.score-a.score);
+    scored.slice(0, 6-out.length).forEach(function(x){ out.push(x.r); });
+  }
+  return out.slice(0,6);
 }
 
 function renderAssistant(){
