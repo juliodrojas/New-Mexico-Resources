@@ -651,7 +651,7 @@ function renderMapView(){
   // Leaflet must attach after the div is in the DOM
   setTimeout(()=>{
     if(leafletMapInstance){ leafletMapInstance.remove(); leafletMapInstance = null; }
-    const map = L.map('leafletMap').setView([35.0, -106.3], 7);
+    const map = L.map('leafletMap').setView([35.11, -106.65], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
@@ -670,10 +670,13 @@ function renderMapView(){
       markers.push(marker);
     });
     if(markers.length){
-      const group = L.featureGroup(markers);
-      map.fitBounds(group.getBounds().pad(0.2));
+      // Fixed ABQ-metro view: fitting all statewide pins on a portrait phone
+      // zooms out to Denver. Most pins are in Albuquerque; users can pan/zoom.
+      map.setView([35.11, -106.65], 11);
     }
     leafletMapInstance = map;
+    // Re-sync tile layout after the page settles (fixes tile seams on mobile)
+    setTimeout(()=>{ try{ map.invalidateSize(); }catch(e){} }, 350);
   }, 0);
 }
 
