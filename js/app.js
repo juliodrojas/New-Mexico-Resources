@@ -922,17 +922,15 @@ function renderHomeExtras(show){
    BOTTOM NAV (mobile) — active state + labels, Search shortcut
    ============================================================ */
 function updateBottomNav(){
-  const nav = document.getElementById('bottomNav');
-  if(!nav) return;
-  nav.querySelector('#navHomeLabel').textContent = t('navHome');
-  nav.querySelector('#navSearchLabel').textContent = t('navSearch');
-  nav.querySelector('#navMapLabel').textContent = t('navMap');
-  nav.querySelector('#navHelpLabel').textContent = t('navHelp');
+  const set = (id, key)=>{ const el = document.getElementById(id); if(el) el.textContent = t(key); };
+  set('tnHome','navHome'); set('tnSearch','navSearch'); set('tnMap','navMap');
+  const help = document.getElementById('tnHelp');
+  if(help) help.textContent = '\u26a0 ' + t('navHelp');
   const h = location.hash || '#/';
   const isHome = (h==='#/'||h===''||h==='#') && !mapView && detailStack.length===0 && path.length===0 && !filters.search;
-  nav.querySelectorAll('button').forEach(b=>{
-    const k = b.dataset.nav;
-    b.classList.toggle('active',
+  document.querySelectorAll('.topnav a').forEach(a=>{
+    const k = a.dataset.nav;
+    a.classList.toggle('active',
       (k==='home'&&isHome) || (k==='map'&&mapView) || (k==='help'&&h==='#/crisis'));
   });
 }
