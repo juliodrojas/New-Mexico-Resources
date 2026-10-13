@@ -67,7 +67,7 @@ const I18N = {
     searchPlaceholder:"Search resources, organizations, keywords...",
     toggleImm:"ITIN / Immigrant-related", toggleHidden:"Hidden gems", toggleMap:"📍 Map view",
     home:"Home",
-    qsTitle:"What's going on?", qsSub:"Skip browsing — tell us the situation",
+    qsTitle:"Pick your situation", qsSub:"Skip browsing — tell us what’s happening", crisisBtn:"⚠ Need help right now?",
     qs:[
       {label:"I need a place to stay tonight"},{label:"I'm behind on rent or a bill"},{label:"I need food"},
       {label:"I don't have a Social Security Number"},{label:"I'm a student and need money fast"},
@@ -106,10 +106,10 @@ const I18N = {
     footerTitle:"New Mexico Resource Navigator",
     footerAbout:"A community-compiled directory of resources across New Mexico. Not an official government website — verify details before relying on them.",
     footerBrowse:"Browse", footerRegions:"Regions", footerGoodKnow:"Good to Know",
-    regions:["Albuquerque / Bernalillo","Santa Fe area","Rio Rancho / Sandoval","Los Lunas / Valencia","Gallup & Los Alamos","Statewide & Tribal-direct"],
+    regions:["Albuquerque / Bernalillo","Santa Fe area","Rio Rancho / Sandoval","Los Lunas / Valencia","Gallup / Northwest NM","Los Alamos / North-central","Statewide & Tribal-direct"],
     goodKnow:["Programs and hours change — call ahead","No fabricated reviews"],
     footerBottom1:"Data compiled from public agency and organization sources.", footerBottom2:"Not a substitute for calling ahead.",
-    officialBanner:"A compiled community resource for New Mexico residents — not an official government website. Data sourced from public agencies and organizations; verify details before relying on them.",
+    officialBanner:"A compiled community resource for New Mexico residents — <b>not an official government website.</b> Data sourced from public agencies and organizations; verify details before relying on them.",
     noMatch:"No resources match the current filters.",
     langToggle:"Español",
     navHome:"Home", navSearch:"Search", navMap:"Map", navHelp:"Help now",
@@ -119,7 +119,7 @@ const I18N = {
     asstBtn:"Find help",
     asstAiBtn:"✨ Ask AI", aiThinking:"Thinking…",
     aiError:"The AI helper is unavailable right now — try the keyword search instead.",
-    asstNote:"Keyword matching, not AI — it finds resources by the words you use.",
+    asstNote:"“Find help” matches your keywords · “Ask AI” answers in your own words.",
     tryLabel:"Try:",
     actCall:"Call", actWeb:"Website", actDir:"Directions",
     sitChips:[
@@ -149,7 +149,7 @@ const I18N = {
     searchPlaceholder:"Busca recursos, organizaciones, palabras clave...",
     toggleImm:"ITIN / Relacionado con inmigrantes", toggleHidden:"Recursos poco conocidos", toggleMap:"📍 Ver mapa",
     home:"Inicio",
-    qsTitle:"¿Qué está pasando?", qsSub:"Sin necesidad de buscar — dinos tu situación",
+    qsTitle:"Elige tu situación", qsSub:"Sin necesidad de buscar — dinos qué está pasando", crisisBtn:"⚠ ¿Necesitas ayuda ahora mismo?",
     qs:[
       {label:"Necesito un lugar para quedarme esta noche"},{label:"Estoy atrasado con la renta o una factura"},{label:"Necesito comida"},
       {label:"No tengo número de Seguro Social"},{label:"Soy estudiante y necesito dinero rápido"},
@@ -187,11 +187,11 @@ const I18N = {
     aboutList:["Obtenido de páginas de agencias públicas y sitios oficiales de organizaciones","Las entradas inciertas se marcan como \"Sin verificar\", no se presentan como hechos","Sin testimonios, reseñas o respaldos inventados"],
     footerTitle:"Navegador de Recursos de Nuevo México",
     footerAbout:"Un directorio de recursos en Nuevo México compilado por la comunidad. No es un sitio web oficial del gobierno — verifica los detalles antes de confiar en ellos.",
-    footerBrowse:"Explorar", footerRegions:"Regiones", footerGoodKnow:"Bueno Saber",
-    regions:["Albuquerque / Bernalillo","Área de Santa Fe","Rio Rancho / Sandoval","Los Lunas / Valencia","Gallup y Los Alamos","Estatal y directo con tribus"],
+    footerBrowse:"Explorar", footerRegions:"Regiones", footerGoodKnow:"Información útil",
+    regions:["Albuquerque / Bernalillo","Área de Santa Fe","Rio Rancho / Sandoval","Los Lunas / Valencia","Gallup / Noroeste de NM","Los Alamos / Norte-centro","Estatal y tribal"],
     goodKnow:["Los programas y horarios cambian — llama antes","Sin reseñas inventadas"],
     footerBottom1:"Datos recopilados de agencias públicas y organizaciones comunitarias.", footerBottom2:"No sustituye llamar antes de ir.",
-    officialBanner:"Un recurso comunitario compilado para residentes de Nuevo México — no es un sitio web oficial del gobierno. Datos de agencias públicas y organizaciones; verifica los detalles antes de confiar en ellos.",
+    officialBanner:"Un recurso comunitario compilado para residentes de Nuevo México — <b>no es un sitio web oficial del gobierno.</b> Datos de agencias públicas y organizaciones; verifica los detalles antes de confiar en ellos.",
     noMatch:"Ningún recurso coincide con los filtros actuales.",
     langToggle:"English",
     navHome:"Inicio", navSearch:"Buscar", navMap:"Mapa", navHelp:"Ayuda ya",
@@ -201,7 +201,7 @@ const I18N = {
     asstBtn:"Buscar ayuda",
     asstAiBtn:"✨ Preguntar a la IA", aiThinking:"Pensando…",
     aiError:"La IA no está disponible ahora — prueba la búsqueda de palabras clave.",
-    asstNote:"Búsqueda por palabras clave, no IA — encuentra recursos según tus palabras.",
+    asstNote:"“Find help” busca por palabras clave · “Ask AI” responde con tus propias palabras.",
     tryLabel:"Prueba:",
     actCall:"Llamar", actWeb:"Sitio web", actDir:"Cómo llegar",
     sitChips:[
@@ -660,7 +660,7 @@ function renderMapView(){
     const markers = [];
     withCoords.forEach(r=>{
       const marker = L.circleMarker([r.lat, r.lng], {
-        radius: 8, fillColor: '#1d7a70', color: '#fff', weight: 2, fillOpacity: 0.9
+        radius: 11, fillColor: '#1d7a70', color: '#fff', weight: 3, fillOpacity: 0.9
       }).addTo(map);
       marker.bindPopup(`<b>${r.name}</b>${r.org}<br><a href="#" data-id="${r.id}">View details →</a>`);
       marker.on('popupopen', (e)=>{
@@ -993,7 +993,7 @@ function renderInner(){
   const wrap = document.createElement('div'); wrap.className = CAT_CLASS[bucket];
   wrap.appendChild(catBanner(bucket));
   const header = document.createElement('div'); header.className='list-header';
-  header.innerHTML = `<div class="icon-circle">${icon(bucket,22)}</div><div class="section-head" style="margin:0; flex:1;"><h2>${t('catNames')[bucket]}</h2></div>`;
+  header.innerHTML = `<div class="icon-circle">${icon(bucket,22)}</div><div class="section-head" style="margin:0; flex:1;"><h2>${t('catNames')[bucket]}</h2>${lang==='es'?'<span class="sub">Listados en inglés</span>':''}</div>`;
   wrap.appendChild(header);
   const items = filtered.filter(r=>r.bucket===bucket);
   wrap.appendChild(buildCardList(items));
@@ -1016,7 +1016,8 @@ function buildCategoryGrid(filtered){
   Object.keys(ICONS).forEach(b=>{
     const count = buckets[b]||0;
     const tile = document.createElement('div'); tile.className = 'cat-tile ' + CAT_CLASS[b];
-    tile.innerHTML = `<div class="icon-circle">${icon(b,20)}</div><div class="txt"><h3>${t('catNames')[b]}</h3><span class="count">${count} resource${count===1?'':'s'}</span></div>`;
+    const countLabel = lang==='es' ? `${count} recurso${count===1?'':'s'}` : `${count} resource${count===1?'':'s'}`;
+    tile.innerHTML = `<div class="icon-circle">${icon(b,20)}</div><div class="txt"><h3>${t('catNames')[b]}</h3><span class="count">${countLabel}</span></div>`;
     makeInteractive(tile, ()=>{ navigate('#/category/'+encodeURIComponent(b)); });
     grid.appendChild(tile);
   });
@@ -1055,11 +1056,12 @@ function extractPhone(contact){
   if(!contact) return null;
   const m = contact.match(/(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
   if(m){
-    const digits = m[0].replace(/\D/g,'');
-    return 'tel:+1' + digits.slice(-10);
+    const digits = m[0].replace(/\D/g,'').slice(-10);
+    const display = '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+    return { href:'tel:+1' + digits, display: display };
   }
   const short = contact.match(/\b([23]11)\b/);
-  if(short) return 'tel:' + short[1];
+  if(short) return { href:'tel:' + short[1], display: short[1] };
   return null;
 }
 
@@ -1230,11 +1232,11 @@ function renderSavedButton(){
 function actionRow(r){
   const phone = extractPhone(r.contact);
   const acts = [];
-  if(phone) acts.push(`<a class="act-call" href="${phone}" onclick="event.stopPropagation()" aria-label="${t('actCall')} ${r.name}">📞 ${t('actCall')}</a>`);
-  if(r.url) acts.push(`<a class="act-web" href="${r.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 ${t('actWeb')}</a>`);
-  if(r.lat && r.lng) acts.push(`<a class="act-dir" href="https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📍 ${t('actDir')}</a>`);
-  acts.push(`<button class="act-save" onclick="event.stopPropagation();toggleFave(${r.id},this)">${faveBtnInner(r.id)}</button>`);
-  acts.push(`<button class="act-share" onclick="event.stopPropagation();shareResource(${r.id})">📤 ${t('shareBtn')}</button>`);
+  if(phone) acts.push(`<a class="act-call" href="${phone.href}" aria-label="${t('actCall')}: ${r.name}, ${phone.display}">📞 ${t('actCall')} ${phone.display}</a>`);
+  if(r.url) acts.push(`<a class="act-web" href="${r.url}" target="_blank" rel="noopener">🌐 ${t('actWeb')}</a>`);
+  if(r.lat && r.lng) acts.push(`<a class="act-dir" href="https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}" target="_blank" rel="noopener">📍 ${t('actDir')}</a>`);
+  acts.push(`<button class="act-save" onclick="toggleFave(${r.id},this)">${faveBtnInner(r.id)}</button>`);
+  acts.push(`<button class="act-share" onclick="shareResource(${r.id})">📤 ${t('shareBtn')}</button>`);
   if(!acts.length) return '';
   return `<div class="card-actions">${acts.join('')}</div>`;
 }
@@ -1254,10 +1256,13 @@ function buildCardList(items){
   items.forEach(r=>{
     const c = document.createElement('div'); c.className='rcard ' + CAT_CLASS[r.bucket];
     c.innerHTML = `<div class="body">
-        <span class="rname">${r.name}</span>
+        <span class="rname" role="link" tabindex="0">${r.name}</span>
         <span class="rorg">${r.org}</span>
         <div class="rmeta">${badgesFor(r)}</div>${actionRow(r)}</div>`;
-    makeInteractive(c, ()=>{ navigate('#/resource/'+r.id); });
+    const go = ()=>navigate('#/resource/'+r.id);
+    const nameEl = c.querySelector('.rname');
+    nameEl.addEventListener('click', go);
+    nameEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
     wrap.appendChild(c);
   });
   return wrap;
@@ -1268,13 +1273,16 @@ function buildRelatedCardList(wrapped){
   wrapped.forEach(({item:r, curated})=>{
     const c = document.createElement('div'); c.className='rcard ' + CAT_CLASS[r.bucket];
     c.innerHTML = `<div class="body">
-        <span class="rname">${r.name}</span>
+        <span class="rname" role="link" tabindex="0">${r.name}</span>
         <span class="rorg">${r.org}</span>
         <div class="rmeta">
           ${curated?`<span class="badge curated">${t('directlyConnected')}</span>`:''}
           ${badgesFor(r)}
         </div></div>`;
-    makeInteractive(c, ()=>{ navigate('#/resource/'+r.id); });
+    const go = ()=>navigate('#/resource/'+r.id);
+    const nameEl = c.querySelector('.rname');
+    nameEl.addEventListener('click', go);
+    nameEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
     wrap.appendChild(c);
   });
   return wrap;
@@ -1413,7 +1421,7 @@ function renderFooterCats(){
    DOM element, then re-renders the dynamic content on top.
    ============================================================ */
 function applyStaticTranslations(){
-  document.getElementById('officialBannerText').innerHTML = t('officialBanner').replace('not an official government website', '<b>not an official government website</b>');
+  document.getElementById('officialBannerText').innerHTML = t('officialBanner');
   document.getElementById('heroEyebrow').textContent = t('heroEyebrow');
   document.getElementById('heroH1').innerHTML = `${t('heroH1_pre')}<em>${t('heroH1_em')}</em>${t('heroH1_post')}`;
   document.getElementById('heroP').textContent = t('heroP');
@@ -1423,6 +1431,7 @@ function applyStaticTranslations(){
   document.getElementById('hiddenFilter').textContent = t('toggleHidden');
   document.getElementById('mapToggle').textContent = t('toggleMap');
   document.getElementById('langToggleBtn').textContent = t('langToggle');
+  document.getElementById('crisisBtn').textContent = t('crisisBtn');
   updateBottomNav();
   renderFooter();
 }
