@@ -108,7 +108,7 @@ const I18N = {
     footerBrowse:"Browse", footerRegions:"Regions", footerGoodKnow:"Good to Know",
     regions:["Albuquerque / Bernalillo","Santa Fe area","Rio Rancho / Sandoval","Los Lunas / Valencia","Gallup / Northwest NM","Los Alamos / North-central","Statewide & Tribal-direct"],
     goodKnow:["Programs and hours change — call ahead","No fabricated reviews"],
-    footerBottom1:"Data compiled from public agency and organization sources.", footerBottom2:"Not a substitute for calling ahead.",
+    footerBottom1:"Data compiled from public agency and organization sources.", footerBottom2:"Not a substitute for calling ahead.", builtBy:"Built by",
     officialBanner:"A compiled community resource for New Mexico residents — <b>not an official government website.</b> Data sourced from public agencies and organizations; verify details before relying on them.",
     noMatch:"No resources match the current filters.",
     langToggle:"Español",
@@ -190,7 +190,7 @@ const I18N = {
     footerBrowse:"Explorar", footerRegions:"Regiones", footerGoodKnow:"Información útil",
     regions:["Albuquerque / Bernalillo","Área de Santa Fe","Rio Rancho / Sandoval","Los Lunas / Valencia","Gallup / Noroeste de NM","Los Alamos / Norte-centro","Estatal y tribal"],
     goodKnow:["Los programas y horarios cambian — llama antes","Sin reseñas inventadas"],
-    footerBottom1:"Datos recopilados de agencias públicas y organizaciones comunitarias.", footerBottom2:"No sustituye llamar antes de ir.",
+    footerBottom1:"Datos recopilados de agencias públicas y organizaciones comunitarias.", footerBottom2:"No sustituye llamar antes de ir.", builtBy:"Creado por",
     officialBanner:"Un recurso comunitario compilado para residentes de Nuevo México — <b>no es un sitio web oficial del gobierno.</b> Datos de agencias públicas y organizaciones; verifica los detalles antes de confiar en ellos.",
     noMatch:"Ningún recurso coincide con los filtros actuales.",
     langToggle:"English",
@@ -1403,7 +1403,8 @@ function renderFooter(){
       <div class="footer-col"><h4>${t('footerRegions')}</h4><ul>${t('regions').map(r=>`<li>${r}</li>`).join('')}</ul></div>
       <div class="footer-col"><h4>${t('footerGoodKnow')}</h4><ul>${t('goodKnow').map(g=>`<li>${g}</li>`).join('')}</ul></div>
     </div>
-    <div class="footer-bottom"><span>${t('footerBottom1')}</span><span>📅 ${t('footerReviewed')}</span><span>${t('footerBottom2')}</span></div>`;
+    <div class="footer-bottom"><span>${t('footerBottom1')}</span><span>📅 ${t('footerReviewed')}</span><span>${t('footerBottom2')}</span></div>
+    <div class="footer-built"><img src="images/highlandx-logo.png" alt="HighlandX logo"><span>${t('builtBy')} <b>Julio Rojas</b> · HighlandX</span><span class="footer-sep">·</span><a href="https://www.linkedin.com/in/julio-david-rojas/" target="_blank" rel="noopener">LinkedIn</a><span class="footer-sep">·</span><a href="mailto:julio.d.rojas.loo@gmail.com">julio.d.rojas.loo@gmail.com</a></div>`;
   renderFooterCats();
 }
 
