@@ -1391,6 +1391,11 @@ function renderBreadcrumb(extra, extraLabel){
 /* ============================================================
    FOOTER
    ============================================================ */
+// Email obfuscated against scrapers: never appears literally in page source
+function emailLink(){
+  const _e1 = 'julio.d.rojas.loo', _e2 = 'gmail.com';
+  return `<a href="mailto:${_e1}@${_e2}">${_e1}@${_e2}</a>`;
+}
 function renderFooter(){
   const footer = document.getElementById('siteFooter');
   footer.innerHTML = `
@@ -1404,11 +1409,8 @@ function renderFooter(){
       <div class="footer-col"><h4>${t('footerGoodKnow')}</h4><ul>${t('goodKnow').map(g=>`<li>${g}</li>`).join('')}</ul></div>
     </div>
     <div class="footer-bottom"><span>${t('footerBottom1')}</span><span>📅 ${t('footerReviewed')}</span><span>${t('footerBottom2')}</span></div>
-    <div class="footer-built"><img src="images/highlandx-logo.png" alt="HighlandX logo"><span>${t('builtBy')} <b>Julio Rojas</b> · HighlandX</span><span class="footer-sep">·</span><a href="https://www.linkedin.com/in/julio-david-rojas/" target="_blank" rel="noopener">LinkedIn</a><span class="footer-sep">·</span>${emailLink}</div>`;
-  // Email obfuscated against scrapers: never appears literally in source
-  const _e1 = 'julio.d.rojas.loo', _e2 = 'gmail.com';
-  const emailLink = `<a href="mailto:${_e1}@${_e2}">${_e1}@${_e2}</a>`;
-  footer.innerHTML = footer.innerHTML.replace('${emailLink}', emailLink);
+    <div class="footer-built"><img src="images/highlandx-logo.png" alt="HighlandX logo"><span>${t('builtBy')} <b>Julio Rojas</b> · HighlandX</span><span class="footer-sep">·</span><a href="https://www.linkedin.com/in/julio-david-rojas/" target="_blank" rel="noopener">LinkedIn</a><span class="footer-sep">·</span>${emailLink()}</div>`;
+  renderFooterCats();
   renderFooterCats();
 }
 
