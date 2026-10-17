@@ -306,6 +306,7 @@ function makeInteractive(el, handler){
    Always navigate via navigate(hash) — never mutate path/detailStack/
    mapView directly, or the URL and the on-screen state will drift apart.
    ============================================================ */
+function goBack(fallback){ if(history.length>1){ history.back(); } else { navigate(fallback||'#/'); } }
 function safePushState(hash){
   try{ history.pushState(null, '', hash); }catch(e){ /* sandboxed preview contexts (e.g. about:srcdoc) don't allow URL changes — fail silently */ }
 }
@@ -488,9 +489,11 @@ function matchWordInTokens(qw, tokens){
   return 0;
 }
 
+var STOPWORDS = {the:1,and:1,for:1,are:1,with:1,from:1,that:1,this:1,have:1,has:1,were:1,will:1,there:1,
+  con:1,por:1,para:1,que:1,del:1,las:1,los:1,una:1,uno:1,como:1,esta:1,este:1,hay:1,tengo:1,tiene:1};
 function expandQuery(query){
   var q=normStr(query), out=[], seen={};
-  function add(w){ if(w && w.length>=3 && !seen[w]){ seen[w]=1; out.push(w); } }
+  function add(w){ if(w && w.length>=3 && !seen[w] && !STOPWORDS[w]){ seen[w]=1; out.push(w); } }
   var pq;
   for(pq in SEARCH_PHRASES){
     if(q.indexOf(pq)!==-1){
@@ -549,26 +552,29 @@ function resourceByName(name){
   return _nameIndex[normStr(name)] || null;
 }
 
-/* Resources whose phrase-bank entry matches the query, in bank order */
+/* Resources whose phrase-bank entry matches the query.
+   Ordered by match specificity (longer matched phrase first), then bank order —
+   so "scholarship for health majors" outranks a generic "scholarship" entry. */
 function phraseSuggest(query){
-  var q = normStr(query), out = [], seen = {};
-  PHRASE_SUGGESTIONS.forEach(function(entry){
+  var q = normStr(query), out = [], seen = {}, hits = [];
+  PHRASE_SUGGESTIONS.forEach(function(entry, ei){
     for(var i=0;i<entry.match.length;i++){
-      if(q.indexOf(entry.match[i]) !== -1){
-        entry.names.forEach(function(n){
-          var r = resourceByName(n);
-          if(r && !seen[r.id]){ seen[r.id]=1; out.push(r); }
-        });
-        break;
-      }
+      if(q.indexOf(entry.match[i]) !== -1){ hits.push({entry:entry, spec:entry.match[i].length, ei:ei}); break; }
     }
+  });
+  hits.sort(function(a,b){ return (b.spec-a.spec) || (a.ei-b.ei); });
+  hits.forEach(function(h){
+    h.entry.names.forEach(function(n){
+      var r = resourceByName(n);
+      if(r && !seen[r.id]){ seen[r.id]=1; out.push(r); }
+    });
   });
   return out;
 }
 
 function phraseBoostIds(query){
   var ids = {};
-  phraseSuggest(query).forEach(function(r){ ids[r.id]=1; });
+  phraseSuggest(query).forEach(function(r, i){ if(!(r.id in ids)) ids[r.id]=i; });
   return ids;
 }
 
@@ -589,7 +595,13 @@ function applyFilters(rows){
     return true;
   });
   if(filters.search){
-    out.sort(function(a,b){ return (b._s||0)-(a._s||0); });
+    out.sort(function(a,b){
+      var ab = boost[a.id]!==undefined, bb = boost[b.id]!==undefined;
+      if(ab && bb) return boost[a.id]-boost[b.id];
+      if(ab) return -1;
+      if(bb) return 1;
+      return (b._s||0)-(a._s||0);
+    });
   }
   return out;
 }
@@ -655,7 +667,7 @@ function renderMapView(){
   const backBtn = document.createElement('button');
   backBtn.className = 'back-btn';
   backBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> ${t('backToCategories')}`;
-  backBtn.onclick = ()=> history.back();
+  backBtn.onclick = ()=> goBack();
   main.appendChild(backBtn);
 
   const h = document.createElement('div'); h.className='section-head'; h.style.marginTop='14px';
@@ -761,7 +773,7 @@ function renderCrisisRoute(){
   const back = document.createElement('button');
   back.className = 'back-btn';
   back.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> ${t('backToCategories')}`;
-  back.onclick = ()=> history.back();
+  back.onclick = ()=> goBack();
   main.appendChild(back);
   const h = document.createElement('div'); h.className='section-head'; h.style.marginTop='14px';
   h.innerHTML = `<h2>${lang==='es' ? '¿Necesitas ayuda ahora mismo?' : 'Need help right now?'}</h2><span class="sub">${lang==='es' ? 'Refugio y líneas de crisis' : 'Shelter and crisis lines'}</span>`;
@@ -901,7 +913,7 @@ function renderSituationRoute(idx){
   const back = document.createElement('button');
   back.className = 'back-btn';
   back.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> ${t('backToCategories')}`;
-  back.onclick = ()=> history.back();
+  back.onclick = ()=> goBack();
   main.appendChild(back);
   const h = document.createElement('div'); h.className='section-head'; h.style.marginTop='14px';
   h.innerHTML = `<h2>${label}</h2><span class="sub">${matches.length} ${t('curatedResourcesFor')}</span>`;
@@ -1224,7 +1236,7 @@ function renderPlaybookRoute(id){
   const back = document.createElement('button');
   back.className = 'back-btn';
   back.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> ${t('backToCategories')}`;
-  back.onclick = ()=> history.back();
+  back.onclick = ()=> goBack();
   main.appendChild(back);
   const h = document.createElement('div'); h.className='section-head'; h.style.marginTop='14px';
   h.innerHTML = `<h2>${pb.icon} ${pb.title[lang]}</h2><span class="sub">${pb.sub[lang]}</span>`;
@@ -1249,7 +1261,7 @@ function renderSavedRoute(){
   const back = document.createElement('button');
   back.className = 'back-btn';
   back.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> ${t('backToCategories')}`;
-  back.onclick = ()=> history.back();
+  back.onclick = ()=> goBack();
   main.appendChild(back);
   const h = document.createElement('div'); h.className='section-head'; h.style.marginTop='14px';
   h.innerHTML = `<h2>🔖 ${t('mySaved')}</h2>`;
@@ -1269,11 +1281,18 @@ function renderSavedButton(){
   return b;
 }
 
+function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function safeUrl(u){
+  if(!u) return null;
+  var s = String(u).trim();
+  return /^(https?:\/\/|tel:|mailto:)/i.test(s) ? s : null;
+}
 function actionRow(r){
   const phone = extractPhone(r.contact);
   const acts = [];
-  if(phone) acts.push(`<a class="act-call" href="${phone.href}" aria-label="${t('actCall')}: ${r.name}, ${phone.display}">📞 ${t('actCall')} ${phone.display}</a>`);
-  if(r.url) acts.push(`<a class="act-web" href="${r.url}" target="_blank" rel="noopener">🌐 ${t('actWeb')}</a>`);
+  if(phone) acts.push(`<a class="act-call" href="${escAttr(phone.href)}" aria-label="${escAttr(t('actCall')+': '+r.name+', '+phone.display)}">📞 ${t('actCall')} ${phone.display}</a>`);
+  const web = safeUrl(r.url);
+  if(web) acts.push(`<a class="act-web" href="${escAttr(web)}" target="_blank" rel="noopener">🌐 ${t('actWeb')}</a>`);
   if(r.lat && r.lng) acts.push(`<a class="act-dir" href="https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}" target="_blank" rel="noopener">📍 ${t('actDir')}</a>`);
   acts.push(`<button class="act-save" onclick="toggleFave(${r.id},this)">${faveBtnInner(r.id)}</button>`);
   acts.push(`<button class="act-share" onclick="shareResource(${r.id})">📤 ${t('shareBtn')}</button>`);
@@ -1357,7 +1376,7 @@ function renderDetail(){
   const row = document.createElement('div'); row.className='back-row';
   const back = document.createElement('button'); back.className='back-btn';
   back.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> ${t('backToList')}`;
-  back.onclick = ()=> history.back();
+  back.onclick = ()=> goBack();
   const share = document.createElement('button'); share.className='share-btn';
   share.innerHTML = t('copyLink');
   share.onclick = ()=>{
