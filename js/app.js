@@ -121,6 +121,11 @@ const I18N = {
     aiError:"The AI helper is unavailable right now — try the keyword search instead.",
     asstNote:"“Find help” matches your keywords · “Ask AI” answers in your own words.",
     tryLabel:"Try:",
+    reportTitle:"Report a mistake", reportSub:"Found something wrong? Tell us — this is a beta.",
+    reportPh:"Describe what you saw and what you expected…",
+    reportSend:"Send", reportCancel:"Cancel", reportThanks:"Thanks — your report was sent. 🙏",
+    reportErr:"Couldn't send. Try again in a moment.",
+    reportBug:"Bug", reportWrong:"Wrong info", reportIdea:"Idea", reportFab:"Report a problem",
     actCall:"Call", actWeb:"Website", actDir:"Directions",
     sitChips:[
       {label:"I need food", q:"i need food"},
@@ -203,6 +208,11 @@ const I18N = {
     aiError:"La IA no está disponible ahora — prueba la búsqueda de palabras clave.",
     asstNote:"“Find help” busca por palabras clave · “Ask AI” responde con tus propias palabras.",
     tryLabel:"Prueba:",
+    reportTitle:"Reporta un error", reportSub:"¿Viste algo mal? Cuéntanos — esto es una beta.",
+    reportPh:"Describe lo que viste y lo que esperabas…",
+    reportSend:"Enviar", reportCancel:"Cancelar", reportThanks:"Gracias — tu reporte fue enviado. 🙏",
+    reportErr:"No se pudo enviar. Intenta en un momento.",
+    reportBug:"Error", reportWrong:"Dato mal", reportIdea:"Idea", reportFab:"Reportar un problema",
     actCall:"Llamar", actWeb:"Sitio web", actDir:"Cómo llegar",
     sitChips:[
       {label:"Necesito comida", q:"necesito comida"},
@@ -762,7 +772,25 @@ function printCurrentView(){
    not a real AI/LLM. It's labeled that way in the UI on purpose —
    don't oversell it in code comments either.
    ============================================================ */
+/* Crisis queries must ONLY ever return crisis lines — never anything else.
+   Checked before the phrase bank and keyword scoring. */
+var CRISIS_PATTERNS = [
+  /\bdie\b/, /\bdying\b/, /suicid/, /kill myself/, /kill me\b/,
+  /end (my|his|her|their) life/, /take my life/, /hurt myself/,
+  /self[-\s]?harm/, /overdos/,
+  /morirme?\b/, /\bmorir\b/, /suicidio/, /suicida/, /quitarme la vida/, /matarme/,
+  /hacerme da\u00f1o/, /me quiero morir/
+];
+function isCrisisQuery(query){
+  var q = normStr(query);
+  return CRISIS_PATTERNS.some(function(re){ return re.test(q); });
+}
+var CRISIS_LINE_NAMES = ["New Mexico Crisis and Access Line", "Agora Crisis Center"];
+function crisisResources(){
+  return CRISIS_LINE_NAMES.map(resourceByName).filter(Boolean);
+}
 function keywordMatch(query){
+  if(isCrisisQuery(query)) return crisisResources();
   if(!query || query.trim().length<3) return [];
   var out = phraseSuggest(query), seen = {};
   out.forEach(function(r){ seen[r.id]=1; });
@@ -1439,6 +1467,73 @@ function applyStaticTranslations(){
   document.getElementById('crisisBtn').textContent = t('crisisBtn');
   updateBottomNav();
   renderFooter();
+  applyReportTranslations();
+}
+
+function applyReportTranslations(){
+  const set = (id, v)=>{ const el = document.getElementById(id); if(el) el.textContent = v; };
+  set('reportTitle', t('reportTitle'));
+  set('reportSub', t('reportSub'));
+  set('reportSend', t('reportSend'));
+  set('reportCancel', t('reportCancel'));
+  const ta = document.getElementById('reportText');
+  if(ta) ta.placeholder = t('reportPh');
+  const fab = document.getElementById('reportFab');
+  if(fab){ fab.setAttribute('aria-label', t('reportFab')); fab.title = t('reportFab'); }
+  const kinds = document.querySelectorAll('#reportKinds .rk span');
+  const labels = [t('reportBug'), t('reportWrong'), t('reportIdea')];
+  kinds.forEach((s,i)=>{ if(labels[i]) s.textContent = labels[i]; });
+}
+
+function initReportDialog(){
+  const fab = document.getElementById('reportFab');
+  const overlay = document.getElementById('reportOverlay');
+  const card = overlay.querySelector('.report-card');
+  const text = document.getElementById('reportText');
+  const status = document.getElementById('reportStatus');
+  const sendBtn = document.getElementById('reportSend');
+  if(!fab || !overlay) return;
+  let kind = 'bug';
+  const open = ()=>{ overlay.hidden = false; status.hidden = true; text.value=''; setTimeout(()=>text.focus(), 50); };
+  const close = ()=>{ overlay.hidden = true; };
+  fab.onclick = open;
+  document.getElementById('reportCancel').onclick = close;
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) close(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && !overlay.hidden) close(); });
+  document.getElementById('reportKinds').querySelectorAll('.rk').forEach(b=>{
+    b.onclick = ()=>{
+      document.getElementById('reportKinds').querySelectorAll('.rk').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      kind = b.dataset.kind;
+    };
+  });
+  sendBtn.onclick = async ()=>{
+    const msg = text.value.trim();
+    if(msg.length < 3) return;
+    sendBtn.disabled = true;
+    status.hidden = true;
+    try{
+      const res = await fetch(API_BASE + '/api/report', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ kind: kind, text: msg, page: location.hash || '#/', lang: lang })
+      });
+      const data = await res.json().catch(()=>({}));
+      if(data.ok){
+        status.textContent = t('reportThanks');
+        status.className = 'report-status ok';
+        text.value = '';
+      }else{
+        status.textContent = t('reportErr');
+        status.className = 'report-status err';
+      }
+    }catch(e){
+      status.textContent = t('reportErr');
+      status.className = 'report-status err';
+    }
+    status.hidden = false;
+    sendBtn.disabled = false;
+  };
+  applyReportTranslations();
 }
 
 function toggleLang(){
@@ -1456,6 +1551,7 @@ function toggleLang(){
    ============================================================ */
 document.getElementById('heroBigNum').textContent = DATA.length;
 applyStaticTranslations();
+initReportDialog();
 applyRoute(location.hash || '#/', true);
 
 /* PWA: offline support via service worker (no-op where unsupported) */
