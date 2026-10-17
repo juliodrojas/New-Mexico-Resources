@@ -792,6 +792,7 @@ var CRISIS_PATTERNS = [
   /end (my|his|her|their) life/, /take my life/, /hurt myself/,
   /self[-\s]?harm/, /overdos/,
   /morirme?\b/, /\bmorir\b/, /suicidio/, /suicida/, /quitarme la vida/, /matarme/,
+  /\bmatar\b/, /no quiero vivir/, /end it all/,
   /hacerme da\u00f1o/, /me quiero morir/
 ];
 function isCrisisQuery(query){
