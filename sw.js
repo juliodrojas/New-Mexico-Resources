@@ -2,6 +2,7 @@
    The site is a single self-contained page (HTML + CSS + JS + data blob),
    so caching the shell makes the whole directory work offline after one visit. */
 const CACHE = 'nmr-v1';
+const TILE_CACHE = 'nmr-tiles-v1';
 const SHELL = ['./', './index.html', './css/styles.css', './js/app.js', './js/playbooks.js', './manifest.json'];
 
 self.addEventListener('install', (e) => {
@@ -10,7 +11,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== TILE_CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -31,10 +32,11 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
-  // Third-party (fonts, map tiles): network-first, cache fallback
+  // Third-party (fonts, map tiles): network-first, cache fallback (separate cache
+  // so map tiles can never evict the app shell under storage pressure)
   e.respondWith(
     fetch(e.request).then((res) => {
-      if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+      if (res && res.ok) { const copy = res.clone(); caches.open(TILE_CACHE).then((c) => c.put(e.request, copy)); }
       return res;
     }).catch(() => caches.match(e.request))
   );
