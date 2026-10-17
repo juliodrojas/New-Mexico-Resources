@@ -500,6 +500,16 @@ function expandQuery(query){
   q.split(/\s+/).forEach(function(w){
     add(w);
     var syn=SEARCH_SYNONYMS[w];
+    if(!syn && w.length>=4){
+      /* typo-tolerant: fuzzy-match the word against synonym keys ("docter"->"doctor") */
+      var best=null, bd=99, k2, d;
+      for(k2 in SEARCH_SYNONYMS){
+        if(k2[0]!==w[0] || Math.abs(k2.length-w.length)>2) continue;
+        d=levDist(w,k2);
+        if(d<bd){ bd=d; best=k2; }
+      }
+      if(best && bd<=fuzzyThreshold(w)) syn=SEARCH_SYNONYMS[best];
+    }
     if(syn) syn.forEach(add);
   });
   return out;
