@@ -229,7 +229,7 @@ const I18N = {
     footerReviewed:"Directorio revisado por última vez en octubre de 2026.",
   }
 };
-function t(key){ return I18N[lang][key]; }
+function t(key){ return I18N[lang][key] ?? I18N.en[key] ?? key; }
 let detailStack = [];
 
 
@@ -320,6 +320,7 @@ function navigate(hash){
 // Reads a #/... path and sets app state to match it, then renders.
 // `fromPop` is true when called from a back/forward button (popstate) — in that case
 // we must NOT push a new history entry, just reflect the state the browser already moved to.
+function safeDecode(s){ try{ return decodeURIComponent(s||''); }catch(e){ return ''; } }
 function applyRoute(hash, fromPop){
   mapView = false; detailStack = []; path = []; filters.search = '';
   document.getElementById('search').value = '';
@@ -329,7 +330,7 @@ function applyRoute(hash, fromPop){
     const found = DATA.find(x=>x.id===id);
     if(found){ path=[found.bucket]; detailStack=[found]; }
   } else if(hash.startsWith('#/category/')){
-    const bucket = decodeURIComponent(hash.split('/')[2]);
+    const bucket = safeDecode(hash.split('/')[2]);
     if(ICONS[bucket]) path=[bucket];
   } else if(hash === '#/map'){
     mapView = true;
@@ -340,7 +341,7 @@ function applyRoute(hash, fromPop){
     renderSavedRoute();
     return;
   } else if(hash.startsWith('#/playbook/')){
-    const pid = decodeURIComponent(hash.split('/')[2]);
+    const pid = safeDecode(hash.split('/')[2]);
     renderPlaybookRoute(pid);
     return;
   } else if(hash.startsWith('#/situation/')){
@@ -354,7 +355,7 @@ function applyRoute(hash, fromPop){
 window.addEventListener('popstate', ()=>{ applyRoute(location.hash || '#/', true); });
 
 function icon(name, size=20){
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`;
 }
 
 
@@ -566,11 +567,12 @@ function phraseBoostIds(query){
    SEARCH & FILTER STATE
    ============================================================ */
 function applyFilters(rows){
+  if(filters.search && isCrisisQuery(filters.search)) return crisisResources();
+  var boost = filters.search ? phraseBoostIds(filters.search) : {};
   var out=rows.filter(function(r){
     if(filters.immigrant && !r.immigrant_tag) return false;
     if(filters.hidden && r.hidden !== "Yes") return false;
     if(filters.search){
-      var boost = phraseBoostIds(filters.search);
       r._s = scoreResource(r, filters.search) + (boost[r.id] ? 1000 : 0);
       return r._s>0;
     }
@@ -583,7 +585,8 @@ function applyFilters(rows){
 }
 function toggleImmigrantFilter(){ filters.immigrant=!filters.immigrant; document.getElementById('immFilter').classList.toggle('active',filters.immigrant); render(); }
 function toggleHiddenFilter(){ filters.hidden=!filters.hidden; document.getElementById('hiddenFilter').classList.toggle('active',filters.hidden); render(); }
-document.getElementById('search').addEventListener('input', e=>{ filters.search=e.target.value; detailStack=[]; render(); });
+var searchDeb=null;
+document.getElementById('search').addEventListener('input', e=>{ clearTimeout(searchDeb); var v=e.target.value; searchDeb=setTimeout(function(){ filters.search=v; detailStack=[]; render(); }, 220); });
 
 
 /* ============================================================
