@@ -16,6 +16,7 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  if(e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   // App shell: cache-first, refresh in background
   if (url.origin === location.origin) {
