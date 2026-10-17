@@ -35,7 +35,7 @@
 </div></div>
 
 <header class="topbar"><div class="topbar-inner">
-  <a class="brand" href="#/" onclick="navigate('#/');return false;"><span class="brand-mark">◆</span>&nbsp;NM Resource Navigator</a>
+  <a class="brand" href="#/" onclick="navigate('#/');return false;"><span class="brand-mark">◆</span>&nbsp;NM Resource Navigator <span class="beta-pill">BETA</span></a>
   <nav class="topnav" aria-label="Primary">
     <a href="#/" data-nav="home" id="tnHome" onclick="navigate('#/');return false;">Home</a>
     <a href="#/" data-nav="search" id="tnSearch" onclick="navToSearch();return false;">Search</a>
@@ -91,5 +91,24 @@
 <script src="js/app.js"></script>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "df8c6dd4f22c47448a3cfd45e41682cb"}'></script><!-- End Cloudflare Web Analytics -->
 
+
+<button id="reportFab" aria-label="Report a problem" title="Report a problem">🐛</button>
+<div id="reportOverlay" class="report-overlay" hidden>
+  <div class="report-card" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+    <h3 id="reportTitle">Report a mistake</h3>
+    <p class="report-sub" id="reportSub">Found something wrong? Tell us — this is a beta.</p>
+    <div class="report-kinds" id="reportKinds">
+      <button data-kind="bug" class="rk active">🐛 <span>Bug</span></button>
+      <button data-kind="mistake" class="rk">❌ <span>Wrong info</span></button>
+      <button data-kind="suggestion" class="rk">💡 <span>Idea</span></button>
+    </div>
+    <textarea id="reportText" rows="4" maxlength="2000"></textarea>
+    <div class="report-actions">
+      <button id="reportCancel" class="rbtn ghost">Cancel</button>
+      <button id="reportSend" class="rbtn primary">Send</button>
+    </div>
+    <p class="report-status" id="reportStatus" hidden></p>
+  </div>
+</div>
 </body>
 </html>
