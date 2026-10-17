@@ -458,3 +458,26 @@ a{color:var(--turquoise);}
   .brand{font-size:.9rem;}
   .topnav a{padding:8px 7px; font-size:.78rem;}
 }
+
+/* =============== BETA =============== */
+.beta-pill{display:inline-block; font-family:'Inter',sans-serif; font-size:0.62rem; font-weight:800; letter-spacing:0.08em; color:#fff; background:#b0451a; border-radius:8px; padding:2px 8px; vertical-align:2px; margin-left:6px;}
+#reportFab{position:fixed; right:18px; bottom:18px; z-index:900; width:52px; height:52px; border-radius:50%; border:1px solid var(--line); background:var(--card); font-size:24px; cursor:pointer; box-shadow:0 4px 16px rgba(30,27,22,.18); display:flex; align-items:center; justify-content:center;}
+#reportFab:hover{transform:scale(1.06);}
+.report-overlay{position:fixed; inset:0; z-index:1000; background:rgba(30,27,22,.45); display:flex; align-items:flex-end; justify-content:center; padding:16px;}
+.report-overlay[hidden]{display:none;}
+.report-card{background:var(--paper); border-radius:16px; padding:22px; width:100%; max-width:440px; box-shadow:0 12px 40px rgba(0,0,0,.25);}
+.report-card h3{font-size:1.1rem; margin-bottom:4px; color:var(--ink);}
+.report-sub{font-size:0.85rem; color:var(--ink-dim); margin-bottom:14px;}
+.report-kinds{display:flex; gap:8px; margin-bottom:12px;}
+.rk{flex:1; border:1px solid var(--line); background:var(--card); border-radius:10px; padding:8px 4px; font-size:0.8rem; cursor:pointer; color:var(--ink);}
+.rk.active{border-color:var(--turquoise); background:var(--accent-dim); font-weight:700;}
+#reportText{width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-family:inherit; font-size:0.9rem; resize:vertical; background:#fff; color:var(--ink); box-sizing:border-box;}
+.report-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:12px;}
+.rbtn{border-radius:10px; padding:9px 18px; font-size:0.88rem; font-weight:600; cursor:pointer; border:1px solid var(--line);}
+.rbtn.ghost{background:transparent; color:var(--ink-dim);}
+.rbtn.primary{background:var(--turquoise); border-color:var(--turquoise); color:#fff;}
+.rbtn.primary:disabled{opacity:.6;}
+.report-status{margin-top:12px; font-size:0.85rem;}
+.report-status.ok{color:var(--turquoise);}
+.report-status.err{color:#b0451a;}
+@media(min-width:640px){ .report-overlay{align-items:center;} }
